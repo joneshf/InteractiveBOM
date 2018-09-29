@@ -17,7 +17,8 @@
   },
   "homepage": "https://github.com/oceanofthelost/InteractiveBOM#readme",
   "devDependencies": {
-    "browserify": "^16.2.2"
+    "browserify": "^16.2.2",
+    "split.js": "^1.3.5"
   },
   "dependencies": {}
 }
