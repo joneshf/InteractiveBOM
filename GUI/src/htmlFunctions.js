@@ -80,21 +80,6 @@ function init() {
   bl_btn.onclick=function(){
     ibom.changeCanvasLayout('B');
   }
-
-  const bom_btn = document.getElementById('bom-btn');
-  bom_btn.onclick=function(){
-    ibom.changeBomLayout('BOM')
-  }
-
-  const lr_btn = document.getElementById('lr-btn');
-  lr_btn.onclick=function(){
-    ibom.changeBomLayout('LR')
-  }
-
-  const tb_btn = document.getElementById('tb-btn');
-  tb_btn.onclick=function(){
-    ibom.changeBomLayout('TB')
-  }
 }
 
 module.exports = {
