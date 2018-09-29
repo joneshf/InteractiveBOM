@@ -33,13 +33,13 @@ type Text
     , width :: Number
     }
 
-calcFontPoint :: Point -> Text -> Number -> Number -> Number -> Array Number
+calcFontPoint :: Point -> Text -> Number -> Number -> Number -> Point
 calcFontPoint { x, y } text offsetx offsety tilt =
   -- Adding half a line height here is technically a bug
   -- but pcbnew currently does the same, text is slightly shifted.
-  [ point0 - (point1 + text.height * 0.5) * tilt
-  , point1
-  ]
+  { x: point0 - (point1 + text.height * 0.5) * tilt
+  , y: point1
+  }
   where
   point0 = x * text.width + offsetx
   point1 = y * text.height + offsety
@@ -99,11 +99,9 @@ drawtext = mkEffectFn4 \ctx text color flip ->
               linei1 <- liftMaybe (line !! (i + 1))
               liftEffect (beginPath ctx)
               case calcFontPoint linei text offsetx offsety tilt of
-                [x, y] -> liftEffect (moveTo ctx x y)
-                _ -> pure mempty
+                { x, y } -> liftEffect (moveTo ctx x y)
               case calcFontPoint linei1 text offsetx offsety tilt of
-                [x, y] -> liftEffect (lineTo ctx x y)
-                _ -> pure mempty
+                { x, y } -> liftEffect (lineTo ctx x y)
               liftEffect (stroke ctx)
           liftEffect (Effect.Ref.modify_ (_ + w * text.width) offsetx')
       restore ctx
