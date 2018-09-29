@@ -1,18 +1,8 @@
 /* PCB rendering code */
 
 var globalData = require('./global.js')
-const { deg2rad } = require('../output/Render');
-
-function calcFontPoint(linepoint, text, offsetx, offsety, tilt) {
-  var point = [
-    linepoint[0] * text.width + offsetx,
-    linepoint[1] * text.height + offsety
-  ];
-  // Adding half a line height here is technically a bug
-  // but pcbnew currently does the same, text is slightly shifted.
-  point[0] -= (point[1] + text.height * 0.5) * tilt;
-  return point;
-}
+const { deg2rad, calcFontPoint } = require('../output/Render');
+const pcbFont = require('./pcbfont');
 
 function drawtext(ctx, text, color, flip) {
   ctx.save();
