@@ -21,7 +21,7 @@ $(PURS_DEPS)/.stamp: $(JS_DEPS)/.stamp bower.json
 	touch $@
 
 .PHONY: build
-build: output/Main/index.js
+build: output/Render/index.js
 
 clean:
 	rm -fr \
@@ -34,10 +34,10 @@ clean:
 	  output \
 	  pcbdata.json
 
-index.js: $(JS_DEPS)/.stamp $(JS_SRCS) pcbdata.json
+index.js: $(JS_DEPS)/.stamp $(JS_SRCS) output/Render/index.js pcbdata.json
 	$(BROWSERIFY) src/htmlFunctions.js --debug --outfile $@
 
-output/Main/index.js: $(JS_DEPS)/.stamp $(PURS_DEPS)/.stamp $(PURS_SRCS)
+output/Render/index.js: $(JS_DEPS)/.stamp $(PURS_DEPS)/.stamp $(PURS_SRCS)
 	$(PULP) build
 
 pcbdata.json: ../Examples/Eagle/Arduino_MEGA2560_ref/pcbdata.json

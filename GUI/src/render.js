@@ -1,10 +1,7 @@
 /* PCB rendering code */
 
 var globalData = require('./global.js')
-
-function deg2rad(deg) {
-  return deg * Math.PI / 180;
-}
+const { deg2rad } = require('../output/Render');
 
 function calcFontPoint(linepoint, text, offsetx, offsety, tilt) {
   var point = [
