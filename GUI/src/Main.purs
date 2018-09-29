@@ -1,9 +1,10 @@
 module Main where
 
 import Prelude
-import Effect (Effect)
-import Effect.Console (log)
 
-main :: Effect Unit
-main = do
-  log "Hello sailor!"
+import Effect (Effect)
+import Effect.Uncurried (EffectFn1, mkEffectFn1)
+
+main :: EffectFn1 { init :: Effect Unit } Unit
+main = mkEffectFn1 \htmlFunctions -> do
+  htmlFunctions.init

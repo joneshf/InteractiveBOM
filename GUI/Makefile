@@ -34,8 +34,8 @@ clean:
 	  output \
 	  pcbdata.json
 
-index.js: $(JS_DEPS)/.stamp $(JS_SRCS) pcbdata.json
-	$(BROWSERIFY) src/htmlFunctions.js --debug --outfile $@
+index.js: $(JS_DEPS)/.stamp $(JS_SRCS) output/Main/index.js pcbdata.json
+	$(BROWSERIFY) src/main.js --debug --outfile $@
 
 output/Main/index.js: $(JS_DEPS)/.stamp $(PURS_DEPS)/.stamp $(PURS_SRCS)
 	$(PULP) build
