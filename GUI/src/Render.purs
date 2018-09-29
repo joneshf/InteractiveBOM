@@ -9,7 +9,7 @@ import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Data.Array (length, (!!), (..))
 import Data.Foldable (elem, for_)
 import Data.FoldableWithIndex (forWithIndex_)
-import Data.Function.Uncurried (Fn1, Fn5, mkFn1, mkFn5, runFn5)
+import Data.Function.Uncurried (Fn1, mkFn1)
 import Data.Int (toNumber)
 import Data.Map (lookup)
 import Data.Maybe (Maybe, fromMaybe)
@@ -33,8 +33,14 @@ type Text
     , width :: Number
     }
 
-calcFontPoint :: Fn5 (Array Number) Text Number Number Number (Array Number)
-calcFontPoint = mkFn5 \linepoint text offsetx offsety tilt ->
+calcFontPoint ::
+  Array Number ->
+  Text ->
+  Number ->
+  Number ->
+  Number ->
+  Array Number
+calcFontPoint linepoint text offsetx offsety tilt =
   fromMaybe linepoint do
     linepoint0 <- linepoint !! 0
     linepoint1 <- linepoint !! 1
@@ -100,10 +106,10 @@ drawtext = mkEffectFn4 \ctx text color flip ->
               linei <- liftMaybe (line !! i)
               linei1 <- liftMaybe (line !! (i + 1))
               liftEffect (beginPath ctx)
-              case runFn5 calcFontPoint linei text offsetx offsety tilt of
+              case calcFontPoint linei text offsetx offsety tilt of
                 [x, y] -> liftEffect (moveTo ctx x y)
                 _ -> pure mempty
-              case runFn5 calcFontPoint linei1 text offsetx offsety tilt of
+              case calcFontPoint linei1 text offsetx offsety tilt of
                 [x, y] -> liftEffect (lineTo ctx x y)
                 _ -> pure mempty
               liftEffect (stroke ctx)
