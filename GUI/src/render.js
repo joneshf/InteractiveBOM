@@ -1,64 +1,7 @@
 /* PCB rendering code */
 
 var globalData = require('./global.js')
-const { deg2rad, calcFontPoint } = require('../output/Render');
-const pcbFont = require('./pcbfont');
-
-function drawtext(ctx, text, color, flip) {
-  ctx.save();
-  ctx.translate(...text.pos);
-  var angle = -text.angle;
-  if (text.attr.includes("mirrored")) {
-    ctx.scale(-1, 1);
-    angle = -angle;
-  }
-  var tilt = 0;
-  if (text.attr.includes("italic")) {
-    tilt = 0.125;
-  }
-  var interline = (text.height * 1.5 + text.thickness) / 2;
-  var txt = text.text.split("\n");
-  ctx.rotate(deg2rad(angle));
-  ctx.fillStyle = color;
-  ctx.strokeStyle = color;
-  ctx.lineCap = "round";
-  ctx.lineWidth = text.thickness;
-  for (var i in txt) {
-    var offsety = (-(txt.length - 1) + i * 2) * interline + text.height / 2;
-    var lineWidth = 0;
-    for (var c of txt[i]) {
-      lineWidth += pcbFont.font_data[c].w * text.width;
-    }
-    var offsetx = 0;
-    switch (text.horiz_justify) {
-      case -1:
-        // Justify left, do nothing
-        break;
-      case 0:
-        // Justify center
-        offsetx -= lineWidth / 2;
-        break;
-      case 1:
-        // Justify right
-        offsetx -= lineWidth;
-        break;
-    }
-    for (var c of txt[i]) {
-      for (var line of pcbFont.font_data[c].l) {
-        // Drawing each segment separately instead of
-        // polyline because round line caps don't work in joints
-        for (var i = 0; i < line.length - 1; i++) {
-          ctx.beginPath();
-          ctx.moveTo(...calcFontPoint(line[i], text, offsetx, offsety, tilt));
-          ctx.lineTo(...calcFontPoint(line[i + 1], text, offsetx, offsety, tilt));
-          ctx.stroke();
-        }
-      }
-      offsetx += pcbFont.font_data[c].w * text.width;
-    }
-  }
-  ctx.restore();
-}
+const { deg2rad, drawtext } = require('../output/Render');
 
 function drawedge(ctx, scalefactor, edge, color) {
   ctx.strokeStyle = color;
