@@ -6,7 +6,7 @@ module Render
 import Prelude
 
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
-import Data.Array (length, (!!), (..))
+import Data.Array (length, uncons, (!!))
 import Data.Foldable (elem, for_)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.Function.Uncurried (Fn1, mkFn1)
@@ -88,22 +88,21 @@ drawtext = mkEffectFn4 \ctx text color flip ->
         -- Justify right
         when (text.horiz_justify == 1) do
           Effect.Ref.modify_ (_ - lineWidth) offsetx'
-        runMaybeT $ for_ (toCodePointArray txti) \c -> do
-          { l, w } <- liftMaybe (lookup c pcbFont.font_data)
-          for_ l \line -> do
-            offsetx <- liftEffect (Effect.Ref.read offsetx')
-            -- Drawing each segment separately instead of
-            -- polyline because round line caps don't work in joints
-            for_ (0 .. (length line - 2)) \i -> do
-              linei <- liftMaybe (line !! i)
-              linei1 <- liftMaybe (line !! (i + 1))
-              liftEffect (beginPath ctx)
-              case calcFontPoint linei text offsetx offsety tilt of
-                { x, y } -> liftEffect (moveTo ctx x y)
-              case calcFontPoint linei1 text offsetx offsety tilt of
-                { x, y } -> liftEffect (lineTo ctx x y)
-              liftEffect (stroke ctx)
-          liftEffect (Effect.Ref.modify_ (_ + w * text.width) offsetx')
+        for_ (toCodePointArray txti) \c ->
+          for_ (lookup c pcbFont.font_data) \{ w, l } -> do
+            for_ l \line' ->
+              for_ (uncons line') \{ head, tail } -> do
+                -- Drawing each segment separately instead of
+                -- polyline because round line caps don't work in joints
+                offsetx <- Effect.Ref.read offsetx'
+                beginPath ctx
+                case calcFontPoint head text offsetx offsety tilt of
+                  { x, y } -> moveTo ctx x y
+                for_ tail \line ->
+                  case calcFontPoint line text offsetx offsety tilt of
+                    { x, y } -> lineTo ctx x y
+                stroke ctx
+            Effect.Ref.modify_ (_ + w * text.width) offsetx'
       restore ctx
 
 liftMaybe :: forall a f. Applicative f => Maybe a -> MaybeT f a
