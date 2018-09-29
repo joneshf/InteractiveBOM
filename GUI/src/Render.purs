@@ -6,7 +6,8 @@ module Render
 import Prelude
 
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
-import Data.Array (length, uncons, (!!))
+import Data.Array (length, (!!))
+import Data.Array.NonEmpty (head, tail)
 import Data.Foldable (elem, for_)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.Function.Uncurried (Fn1, mkFn1)
@@ -90,18 +91,17 @@ drawtext = mkEffectFn4 \ctx text color flip ->
           Effect.Ref.modify_ (_ - lineWidth) offsetx'
         for_ (toCodePointArray txti) \c ->
           for_ (lookup c pcbFont.font_data) \{ w, l } -> do
-            for_ l \line' ->
-              for_ (uncons line') \{ head, tail } -> do
-                -- Drawing each segment separately instead of
-                -- polyline because round line caps don't work in joints
-                offsetx <- Effect.Ref.read offsetx'
-                beginPath ctx
-                case calcFontPoint head text offsetx offsety tilt of
-                  { x, y } -> moveTo ctx x y
-                for_ tail \line ->
-                  case calcFontPoint line text offsetx offsety tilt of
-                    { x, y } -> lineTo ctx x y
-                stroke ctx
+            for_ l \line' -> do
+              -- Drawing each segment separately instead of
+              -- polyline because round line caps don't work in joints
+              offsetx <- Effect.Ref.read offsetx'
+              beginPath ctx
+              case calcFontPoint (head line') text offsetx offsety tilt of
+                { x, y } -> moveTo ctx x y
+              for_ (tail line') \line ->
+                case calcFontPoint line text offsetx offsety tilt of
+                  { x, y } -> lineTo ctx x y
+              stroke ctx
             Effect.Ref.modify_ (_ + w * text.width) offsetx'
       restore ctx
 
