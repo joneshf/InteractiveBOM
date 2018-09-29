@@ -12,7 +12,7 @@ import Data.FoldableWithIndex (forWithIndex_)
 import Data.Function.Uncurried (Fn1, mkFn1)
 import Data.Int (toNumber)
 import Data.Map (lookup)
-import Data.Maybe (Maybe, fromMaybe)
+import Data.Maybe (Maybe)
 import Data.Newtype (wrap)
 import Data.String (split, toCodePointArray)
 import Effect.Class (liftEffect)
@@ -20,7 +20,7 @@ import Effect.Ref as Effect.Ref
 import Effect.Uncurried (EffectFn4, mkEffectFn4)
 import Graphics.Canvas (Context2D, LineCap(..), beginPath, lineTo, moveTo, restore, rotate, save, scale, setFillStyle, setLineCap, setLineWidth, setStrokeStyle, stroke, translate)
 import Math as Math
-import PCBFont (pcbFont)
+import PCBFont (Point, pcbFont)
 
 type Text
   = { angle :: Number
@@ -33,25 +33,17 @@ type Text
     , width :: Number
     }
 
-calcFontPoint ::
-  Array Number ->
-  Text ->
-  Number ->
-  Number ->
-  Number ->
-  Array Number
-calcFontPoint linepoint text offsetx offsety tilt =
-  fromMaybe linepoint do
-    linepoint0 <- linepoint !! 0
-    linepoint1 <- linepoint !! 1
-    let point0 = linepoint0 * text.width + offsetx
-        point1 = linepoint1 * text.height + offsety
-    pure
-      -- Adding half a line height here is technically a bug
-      -- but pcbnew currently does the same, text is slightly shifted.
-      [ point0 - (point1 + text.height * 0.5) * tilt
-      , point1
-      ]
+calcFontPoint :: Point -> Text -> Number -> Number -> Number -> Array Number
+calcFontPoint { x, y } text offsetx offsety tilt =
+  -- Adding half a line height here is technically a bug
+  -- but pcbnew currently does the same, text is slightly shifted.
+  [ point0 - (point1 + text.height * 0.5) * tilt
+  , point1
+  ]
+  where
+  point0 = x * text.width + offsetx
+  point1 = y * text.height + offsety
+
 
 deg2rad :: Fn1 Number Number
 deg2rad = mkFn1 \deg ->
