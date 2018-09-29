@@ -64,22 +64,6 @@ function init() {
   additionalAttributes.oninput=function(){
     ibom.setAdditionalAttributes(additionalAttributes.value);
   }
-
-  const fl_btn = document.getElementById('fl-btn');
-  fl_btn.onclick=function(){
-    ibom.changeCanvasLayout('F');
-  }
-
-  const fb_btn = document.getElementById('fb-btn');
-  fb_btn.onclick=function(){
-    ibom.changeCanvasLayout('FB');
-  }
-
-
-  const bl_btn = document.getElementById('bl-btn');
-  bl_btn.onclick=function(){
-    ibom.changeCanvasLayout('B');
-  }
 }
 
 module.exports = {

@@ -21,6 +21,18 @@ main = mkEffectFn2 \htmlFunctions ibom -> do
 
   document <- getDocument
 
+  flButton <- document # getElementById "fl-btn"
+  flButton # (traverse_ <<< onClick) \_ ->
+    runEffectFn1 ibom.changeCanvasLayout "F"
+
+  fbButton <- document # getElementById "fb-btn"
+  fbButton # (traverse_ <<< onClick) \_ ->
+    runEffectFn1 ibom.changeCanvasLayout "FB"
+
+  blButton <- document # getElementById "bl-btn"
+  blButton # (traverse_ <<< onClick) \_ ->
+    runEffectFn1 ibom.changeCanvasLayout "B"
+
   bomButton <- document # getElementById "bom-btn"
   bomButton # (traverse_ <<< onClick) \_ ->
     runEffectFn1 ibom.changeBomLayout "BOM"
@@ -50,4 +62,5 @@ type HtmlFunctions
 
 type IBOM
   = { changeBomLayout :: EffectFn1 String Unit
+    , changeCanvasLayout :: EffectFn1 String Unit
     }
