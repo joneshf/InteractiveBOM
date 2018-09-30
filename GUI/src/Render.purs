@@ -34,8 +34,8 @@ type Text
     , width :: Number
     }
 
-calcFontPoint :: Point -> Text -> Number -> Number -> Number -> Point
-calcFontPoint { x, y } text offsetx offsety tilt =
+calcFontPoint :: Text -> Number -> Number -> Number -> Point -> Point
+calcFontPoint text tilt offsety offsetx { x, y } =
   -- Adding half a line height here is technically a bug
   -- but pcbnew currently does the same, text is slightly shifted.
   { x: point0 - (point1 + text.height * 0.5) * tilt
@@ -85,14 +85,15 @@ drawtext = mkEffectFn4 \ctx text color flip ->
               -- We have to handle the 2^54 - 3 other cases.
               _ -> 0.0
         for_ widths \{ l, offsetx, w, width } -> do
+          let calc = calcFontPoint text tilt offsety (justify + width)
           for_ l \line' -> do
             -- Drawing each segment separately instead of
             -- polyline because round line caps don't work in joints
             beginPath ctx
-            case calcFontPoint (head line') text (justify + width) offsety tilt of
+            case calc (head line') of
               { x, y } -> moveTo ctx x y
             for_ (tail line') \line ->
-              case calcFontPoint line text (justify + width) offsety tilt of
+              case calc line of
                 { x, y } -> lineTo ctx x y
             stroke ctx
       restore ctx
