@@ -17,7 +17,6 @@
     "purescript-canvas": "^4.0.0",
     "purescript-strings": "^4.0.0",
     "purescript-ordered-collections": "^1.1.0",
-    "purescript-refs": "^4.1.0",
     "purescript-transformers": "^4.1.0"
   },
   "devDependencies": {

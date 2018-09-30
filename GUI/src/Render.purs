@@ -5,19 +5,19 @@ module Render
 
 import Prelude
 
-import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
-import Data.Array (length, (!!))
-import Data.Array.NonEmpty (head, tail)
-import Data.Foldable (elem, for_)
+import Control.Monad.State (evalStateT, get, modify)
+import Control.Monad.Trans.Class (lift)
+import Data.Array (last, length, (!!))
+import Data.Array.NonEmpty (NonEmptyArray, head, tail)
+import Data.Foldable (elem, fold, for_)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.Function.Uncurried (Fn1, mkFn1)
 import Data.Int (toNumber)
 import Data.Map (lookup)
-import Data.Maybe (Maybe)
+import Data.Maybe (maybe)
 import Data.Newtype (wrap)
 import Data.String (split, toCodePointArray)
-import Effect.Class (liftEffect)
-import Effect.Ref as Effect.Ref
+import Data.Traversable (for)
 import Effect.Uncurried (EffectFn4, mkEffectFn4)
 import Graphics.Canvas (Context2D, LineCap(..), beginPath, lineTo, moveTo, restore, rotate, save, scale, setFillStyle, setLineCap, setLineWidth, setStrokeStyle, stroke, translate)
 import Math as Math
@@ -57,12 +57,11 @@ drawtext = mkEffectFn4 \ctx text color flip ->
     \pos -> do
       save ctx
       translate ctx pos
-      angle <- do
-        angle <- Effect.Ref.new (-text.angle)
-        when ("mirrored" `elem` text.attr) do
+      angle <- if "mirrored" `elem` text.attr
+        then do
           scale ctx { scaleX: -1.0, scaleY: 1.0 }
-          Effect.Ref.modify_ negate angle
-        Effect.Ref.read angle
+          pure text.angle
+        else pure (-text.angle)
       let tilt = if "italic" `elem` text.attr then 0.125 else 0.0
           interline = (text.height * 1.5 + text.thickness) / 2.0
           txt = split (wrap "\n") text.text
@@ -71,39 +70,44 @@ drawtext = mkEffectFn4 \ctx text color flip ->
       setStrokeStyle ctx color
       setLineCap ctx Round
       setLineWidth ctx text.thickness
-      forWithIndex_ txt \i' txti -> do
-        let offsety =
-              toNumber (-(length txt - 1) + i' * 2) * interline + text.height / 2.0
-        lineWidth <- do
-          lineWidth <- Effect.Ref.new 0.0
-          void $ runMaybeT $ for_ (toCodePointArray txti) \c -> do
-            { w } <- liftMaybe (lookup c pcbFont.font_data)
-            liftEffect (Effect.Ref.modify (_ + w * text.width) lineWidth)
-          Effect.Ref.read lineWidth
-        offsetx' <- Effect.Ref.new 0.0
-        -- Justify left, do nothing
-        when (text.horiz_justify == -1) mempty
-        -- Justify center
-        when (text.horiz_justify == 0) do
-          Effect.Ref.modify_ (_ - lineWidth / 2.0) offsetx'
-        -- Justify right
-        when (text.horiz_justify == 1) do
-          Effect.Ref.modify_ (_ - lineWidth) offsetx'
-        for_ (toCodePointArray txti) \c ->
-          for_ (lookup c pcbFont.font_data) \{ w, l } -> do
-            for_ l \line' -> do
-              -- Drawing each segment separately instead of
-              -- polyline because round line caps don't work in joints
-              offsetx <- Effect.Ref.read offsetx'
-              beginPath ctx
-              case calcFontPoint (head line') text offsetx offsety tilt of
-                { x, y } -> moveTo ctx x y
-              for_ (tail line') \line ->
-                case calcFontPoint line text offsetx offsety tilt of
-                  { x, y } -> lineTo ctx x y
-              stroke ctx
-            Effect.Ref.modify_ (_ + w * text.width) offsetx'
+      forWithIndex_ txt \i txti -> do
+        let lineWidth = maybe 0.0 _.offsetx (last widths)
+            offsety =
+              toNumber (i * 2 - length txt + 1) * interline + text.height / 2.0
+            widths = mkWidths text txti
+            justify = case text.horiz_justify of
+              -- Justify left, do nothing
+              -1 -> 0.0
+              -- Justify center
+              0 -> lineWidth / -2.0
+              -- Justify right
+              1 -> -lineWidth
+              -- We have to handle the 2^54 - 3 other cases.
+              _ -> 0.0
+        for_ widths \{ l, offsetx, w, width } -> do
+          for_ l \line' -> do
+            -- Drawing each segment separately instead of
+            -- polyline because round line caps don't work in joints
+            beginPath ctx
+            case calcFontPoint (head line') text (justify + width) offsety tilt of
+              { x, y } -> moveTo ctx x y
+            for_ (tail line') \line ->
+              case calcFontPoint line text (justify + width) offsety tilt of
+                { x, y } -> lineTo ctx x y
+            stroke ctx
       restore ctx
 
-liftMaybe :: forall a f. Applicative f => Maybe a -> MaybeT f a
-liftMaybe x = MaybeT (pure x)
+type Width =
+  { l :: Array (NonEmptyArray Point)
+  , offsetx :: Number
+  , w :: Number
+  , width :: Number
+  }
+
+mkWidths :: forall r. { width :: Number | r } -> String -> Array Width
+mkWidths text str =
+  fold $ flip evalStateT 0.0 $ for (toCodePointArray str) \c -> do
+    { l, w } <- lift (lookup c pcbFont.font_data)
+    width <- get
+    offsetx <- modify (_ + w * text.width)
+    pure { l, offsetx, w, width }
