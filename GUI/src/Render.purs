@@ -9,7 +9,7 @@ import Control.Monad.State (evalStateT, get, modify)
 import Control.Monad.Trans.Class (lift)
 import Data.Array (last, length, (!!))
 import Data.Array.NonEmpty (NonEmptyArray, head, tail)
-import Data.Foldable (elem, fold, for_)
+import Data.Foldable (elem, fold, for_, traverse_)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.Function.Uncurried (Fn1, mkFn1)
 import Data.Int (toNumber)
@@ -18,6 +18,7 @@ import Data.Maybe (maybe)
 import Data.Newtype (wrap)
 import Data.String (split, toCodePointArray)
 import Data.Traversable (for)
+import Data.Tuple (Tuple(..), uncurry)
 import Effect.Uncurried (EffectFn4, mkEffectFn4)
 import Graphics.Canvas (Context2D, LineCap(..), beginPath, lineTo, moveTo, restore, rotate, save, scale, setFillStyle, setLineCap, setLineWidth, setStrokeStyle, stroke, translate)
 import Math as Math
@@ -34,13 +35,17 @@ type Text
     , width :: Number
     }
 
-calcFontPoint :: Text -> Number -> Number -> Number -> Point -> Point
+calcFontPoint ::
+  Text ->
+  Number ->
+  Number ->
+  Number ->
+  Point ->
+  Tuple Number Number
 calcFontPoint text tilt offsety offsetx { x, y } =
   -- Adding half a line height here is technically a bug
   -- but pcbnew currently does the same, text is slightly shifted.
-  { x: point0 - (point1 + text.height * 0.5) * tilt
-  , y: point1
-  }
+  Tuple (point0 - (point1 + text.height * 0.5) * tilt) point1
   where
   point0 = x * text.width + offsetx
   point1 = y * text.height + offsety
@@ -86,15 +91,12 @@ drawtext = mkEffectFn4 \ctx text color flip ->
               _ -> 0.0
         for_ widths \{ l, offsetx, w, width } -> do
           let calc = calcFontPoint text tilt offsety (justify + width)
-          for_ l \line' -> do
+          for_ l \line -> do
             -- Drawing each segment separately instead of
             -- polyline because round line caps don't work in joints
             beginPath ctx
-            case calc (head line') of
-              { x, y } -> moveTo ctx x y
-            for_ (tail line') \line ->
-              case calc line of
-                { x, y } -> lineTo ctx x y
+            uncurry (moveTo ctx) (calc $ head line)
+            traverse_ (uncurry (lineTo ctx) <<< calc) (tail line)
             stroke ctx
       restore ctx
 
