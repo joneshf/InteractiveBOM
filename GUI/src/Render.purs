@@ -89,7 +89,7 @@ drawtext = mkEffectFn4 \ctx text color flip ->
               1 -> -lineWidth
               -- We have to handle the 2^54 - 3 other cases.
               _ -> 0.0
-        for_ widths \{ l, offsetx, w, width } -> do
+        for_ widths \{ l, offsetx, width } -> do
           let calc = calcFontPoint text tilt offsety (justify + width)
           for_ l \line -> do
             -- Drawing each segment separately instead of
@@ -103,7 +103,6 @@ drawtext = mkEffectFn4 \ctx text color flip ->
 type Width =
   { l :: Array (NonEmptyArray Point)
   , offsetx :: Number
-  , w :: Number
   , width :: Number
   }
 
@@ -113,4 +112,4 @@ mkWidths text str =
     { l, w } <- lift (lookup c pcbFont.font_data)
     width <- get
     offsetx <- modify (_ + w * text.width)
-    pure { l, offsetx, w, width }
+    pure { l, offsetx, width }
